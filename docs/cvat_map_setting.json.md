@@ -32,7 +32,7 @@ cvat_map_setting.json用于配置生成缓存的流程
         },
         "city": {
             "extend": "map_back",
-            "scale_img": 1.7578125,
+            "scale_img": 0.87890625,
             "scale_axes": 1.1377777,
             "zoom": 3.0
         },
