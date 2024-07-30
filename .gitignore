@@ -3,3 +3,4 @@ tokens.json
 resources
 output
 opencv-python
+__pycache__
