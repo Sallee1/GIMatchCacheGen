@@ -149,27 +149,16 @@ class WebMapDownloader:
                 except Exception as e:
                     print(f"[error] 处理插件数据时发生错误：{e}")
 
-# 示例调用
-# download_web_map('http://example.com/web_map.json', '/path/to/save')
-
-
 if __name__ == "__main__":
     cwd = os.getcwd()
 
     # 01: 解析token文件
-    if (os.path.isfile("tokens.json") == False):
-        raise FileNotFoundError("tokens.json文件不存在")
-
-    tokens = {}
     with open("tokens.json", "r") as f:
         tokens = json.load(f)
 
     # 02: 下载web_map.json的资源
     # 读取地区配置文件
     cvat_setting_json_path = "resources/json/cvat_map_setting.json"
-    if (not os.path.isfile(cvat_setting_json_path)):
-        raise FileNotFoundError("cvat_map_setting.json文件不存在")
-    cvat_map_setting = {}
     with open(cvat_setting_json_path, "r", encoding="utf-8") as f:
         cvat_map_setting = json.load(f)
 

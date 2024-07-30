@@ -221,12 +221,12 @@ class MapInfoGenerator:
                     
                 if("coord_systems" in transform):
                     coord_system_obj = self.cvat_map_setting["coord_systems"][transform["coord_systems"]]
+                    layer_info_obj["type"] = str(transform["coord_systems"]).upper()
                     layer_info_obj["scale_img"] = coord_system_obj["scale_img"]
                     layer_info_obj["scale_axes"] = coord_system_obj["scale_axes"]
                     layer_info_obj["zoom"] = coord_system_obj["zoom"]
             self.layer_info_dict[value] = layer_info_obj
             print(f"[info] 写入数据\"{value}\"({name})")
-                
 
     def gen(self, webmap_url: str):
         """获取web_map.json文件"""
@@ -235,7 +235,7 @@ class MapInfoGenerator:
             response.raise_for_status()
         except requests.RequestException as e:
             print(f"获取web_map.json失败，原因：{e}")
-            return
+            return {}
 
         web_map_json: JsonObj = response.json()
         plugin_json: JsonObj = web_map_json.get("plugins", {})
@@ -249,37 +249,33 @@ class MapInfoGenerator:
                 except Exception as e:
                     print(f"[error] 处理插件数据时发生错误：{e}")
 
-    def dump(self, file_path: str):
-        """将数据写入文件"""
-        with open(file_path, "w",encoding="utf-8") as f:
-            json.dump(self.layer_info_dict, f, indent=4, ensure_ascii=False)
-        print(f"[info] 地图信息已写入{file_path}")
+        return self.layer_info_dict
 
 
 if __name__ == "__main__":
     cwd = os.getcwd()
 
     # 01: 解析token文件
-    if (os.path.isfile("tokens.json") == False):
-        raise FileNotFoundError("tokens.json文件不存在")
-
-    tokens = {}
     with open("tokens.json", "r") as f:
         tokens = json.load(f)
 
     # 02: 从web_map.json提取坐标系
     # 读取地区配置文件
     cvat_setting_json_path = "resources/json/cvat_map_setting.json"
-
-    if (not os.path.isfile(cvat_setting_json_path)):
-        raise FileNotFoundError("cvat_map_setting.json文件不存在")
-
-    cvat_map_setting = {}
-
     with open(cvat_setting_json_path, "r", encoding="utf-8") as f:
         cvat_map_setting = json.load(f)
 
     web_map_url = tokens["web-map_url"]
     generator = MapInfoGenerator("resources/web_map", cvat_map_setting)
-    generator.gen(web_map_url)
-    generator.dump("resources/json/raw_web_map_info.json")
+    raw_web_map_info = generator.gen(web_map_url)
+
+    # 合并地图信息
+    with open("resources/json/raw_extra_map_info.json", "r", encoding="utf-8") as f:
+        raw_extra_map_info = json.load(f)
+    for key in raw_extra_map_info.keys():
+        raw_web_map_info.update({key: raw_extra_map_info[key]})
+
+    with open("resources/json/raw_merged_map_info.json", "w", encoding="utf-8") as f:
+        json.dump(raw_web_map_info, f, indent=4, ensure_ascii=False)
+
+    print(f"[info] 已合并地图信息到{cwd}/resources/json/raw_merged_map_info.json")
