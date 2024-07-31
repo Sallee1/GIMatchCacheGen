@@ -19,8 +19,8 @@ class KeypointCacheGenerator:
         self.outpath = outpath
         self.cvat_map_setting = cvat_map_setting
 
-        surf_descriptor = cv2.xfeatures2d.SURF()
-        surf_descriptor.create(
+        self.surf_detector = cv2.xfeatures2d.SURF()
+        self.surf_detector.create(
             hessianThreshold=cvat_map_setting.get("hessianThreshold", 100),
             nOctaves=cvat_map_setting.get("nOctaves", 4),
             nOctaveLayers=cvat_map_setting.get("nOctaveLayers", 2),
@@ -106,9 +106,6 @@ class KeypointCacheGenerator:
         return out_layer_info
 
         # 合并块，返回合并后的图像
-
-    debug_img_id = 0
-
     def _merge_chunks(self, layer_info: JsonObj) -> np.ndarray | None:
         scale_img: float = layer_info["scale_img"]
         scale_axes: float = layer_info["scale_axes"]
@@ -142,11 +139,29 @@ class KeypointCacheGenerator:
             # 合并图像
             merge_img = self._mix_img(img, merge_img, cur_img_tl)
 
-        # 测试图像合并效果
-        if (merge_img is not None and len(layer_info["chunks"]) > 1):
-            cv2.imwrite(os.path.join(self.outpath, f"test_{self.debug_img_id:0>5}.png"), merge_img)
-            self.debug_img_id += 1
         return merge_img
+
+    def _compute_img_keypoint(self, img: np.ndarray, padding=32) -> tuple[Any, Any]:
+        """
+        计算图像中的关键点
+        :param img: 图像
+        :param padding: 填充像素
+        """
+        # 填充图像边缘
+        img = cv2.copyMakeBorder(img, padding, padding, padding, padding, cv2.BORDER_REPLICATE)
+        # 计算图像关键点
+        keypoints, descriptors = self.surf_detector.detectAndCompute(img, None)  # type: ignore
+
+        return keypoints, descriptors
+
+    def _compute_img_view_keypoint(self, img: np.ndarray, view: CVBounds, padding=32):
+        """
+        计算图像视图中的关键点
+        :param img: 图像
+        :param view: 视图框
+        :param padding: 填充像素
+        """
+        pass
 
     def genTiles(self, raw_tile_info: JsonObj):
         pass
@@ -163,6 +178,13 @@ class KeypointCacheGenerator:
             else:
                 img_path = os.path.join(self.respath, raw_map_info[layer_key]["img_path"])
                 img = cv2.imread(img_path)
+
+            if (img is None):
+                print(f"[Error] {layer_key} 所绑定的图像无效")
+                continue
+
+            # 生成特征点
+            keypoints, descriptors = self._compute_img_keypoint(img)
 
         return layer_info_dict
 

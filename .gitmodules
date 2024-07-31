@@ -1,0 +1,3 @@
+[submodule "GIMatchCacheGen.rc"]
+	path = GIMatchCacheGen.rc
+	url = git@github.com:WeiXiTianLi/GIMatchCacheGen.rc.git
